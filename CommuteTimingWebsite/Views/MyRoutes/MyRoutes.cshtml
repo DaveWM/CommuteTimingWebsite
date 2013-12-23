@@ -1,0 +1,72 @@
+﻿@{
+    ViewBag.Title = "Commute Timer";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@model List<CommuteTimingWebsite.Models.Route>
+
+@section scripts{
+    <script>
+        module.controller('myRoutesController', function ($scope) {
+            function InitialiseRoute(route,isNew) {
+                route.State = $scope.RouteStateEnum.Idle;
+                route.IsNew = isNew;
+            }
+            
+            $scope.RouteStateEnum = { Idle: 0, Deleting: 2, Saving: 3,Recording:4 };
+            $scope.Routes = @Html.Raw(Json.Encode(Model));
+            $.each($scope.Routes,function(index, item) {
+                InitialiseRoute(item,false);
+            });
+            $scope.SelectedRoute = { };
+            $scope.AddRoute = function() {
+                var toAdd=@Html.Raw(Json.Encode(ViewBag.NewRoute));
+                InitialiseRoute(toAdd,true);
+                $scope.Routes.push(toAdd);
+            };
+            $scope.SaveRoute = function(route) {
+                route.State = $scope.RouteStateEnum.Saving;
+                $.post('@Url.Action("SaveRoute")', route, function(data) {
+                    toastr.success("Saved " + route.Name);
+                    route.IsNew = false;
+                    route.State = $scope.RouteStateEnum.Idle;
+                    $scope.$apply();
+                });
+            };
+            $scope.DeleteRoute = function(route) {
+                route.State = $scope.RouteStateEnum.Deleting;
+                $.post('@Url.Action("DeleteRoute")', route, function(data) {
+                    toastr.success("Deleted " + route.Name);
+                    $scope.Routes.splice($scope.Routes.indexOf(route), 1);
+                    $scope.$apply();
+                });
+            };
+        });
+    </script>
+}
+<div class="page-header">
+    <h3>Record Your Commute Time</h3>
+</div>
+<div ng-controller="myRoutesController" ng-cloak>
+    <div class="row">
+        {{SelectedRoute.Name}}
+        <div ng-repeat="route in Routes" class="col-xs-4" ng-click="SelectedRoute=route" ng-class="{routeLoading:route.State != RouteStateEnum.Idle}">
+            <input ng-show="route.IsNew" type="text" class="form-control" ng-model="route.Name"/>
+            <div class="page-header">
+                <h4>{{route.Name}}</h4>
+            </div>
+            <p>Number of times taken: {{route.Journeys.length}}</p>
+            <div class="row">
+                <button ng-class="{disabled: route.State != RouteStateEnum.Idle || !route.Name}" ng-hide="!route.IsNew" class="btn btn-primary btn-block" ng-click="SaveRoute(route)"><i class="fa fa-floppy-o"></i> Save</button>
+                <button ng-class="{disabled: route.State != RouteStateEnum.Idle}" class="btn btn-primary btn-block" ng-click="DeleteRoute(route)"><i class="fa fa-ban"></i> Delete</button>
+                <a ng-href="@Url.Action("Route")/{{route.ID}}">Go To Route</a>
+            </div>
+            <i class="fa fa-3x fa-spinner fa-spin centered" ng-hide="route.State == RouteStateEnum.Idle"></i>
+        </div>
+        <div class="col-xs-4">
+            <p>
+                <a href="#" ng-click="AddRoute()" class="centered"><i class="fa fa-2x fa-plus-circle"></i></a>
+            </p>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,188 @@
+﻿.centered {
+    position: absolute;
+    right:50%;
+    top: 50%;
+    opacity: 1;
+}
+.routeLoading {
+    opacity: 0.5;
+}
+
+body {
+    color: #232323;
+    overflow-x: hidden;
+}
+
+header, footer, nav, section {
+    display: block;
+}
+.header { 
+    background-color: #C0C0C0;
+    text-align: center;
+}
+.shadowEffect {
+    transition: text-shadow 3s ease;
+    text-shadow: 7px 7px 6px #38382E;
+}
+.header h1, .header h4 {
+    color: white;
+    padding-bottom: 15px;
+}
+.content {
+    background-color: #fff;
+    padding: 10px;
+}
+.section {
+   padding: 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.content p {
+    display: inline;
+}
+#sidebar {
+    margin-top: 50px;
+    margin-left: 25px;
+}
+#title {
+    cursor: pointer
+}
+#footer {
+    margin-bottom: 0px;
+    width: 100%;
+    height: 150px;
+    color: white;
+    position: fixed;
+    bottom: 0;
+    background-color: #C0C0C0;
+    padding-top: 25px;
+    z-index: 999;
+}
+#footer a {
+    color: white;
+}
+#footer a:hover {
+    color: cornsilk;
+}
+#footer div {
+    margin-bottom: 10px;
+}
+#main {
+    margin-bottom: 150px;
+}
+
+.comments {
+    margin-top: 30px;
+}
+.imageList img {
+    display: inline;
+    margin: 10px;
+}
+#technologies .slider {
+    display: block;
+    margin-right: auto;
+    margin-left: auto;
+    margin-top: 10px;
+    margin-bottom: 15px;
+}
+#technologies .btn-group {
+    float: none;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-left: auto;
+    margin-right: auto;
+}
+#technologies .btn-toolbar {
+    text-align: center;
+}
+.imageList {
+    overflow: hidden;
+    text-align: center;
+}
+.page-header small {
+    color: red;
+}
+@media (max-width: 768px) {
+    #footer {
+        margin-bottom: 0px;
+        width: 100%;
+        height: 150px;
+        color: white;
+        position: relative;
+        background-color: #C0C0C0;
+        padding-top: 25px;
+        z-index: 999;
+    }
+
+    #main {
+        margin-bottom: 0px;
+    }
+}
+/* Styles for basic forms
+-----------------------------------------------------------*/
+fieldset {
+    border: 1px solid #ddd;
+    padding: 0 1.4em 1.4em 1.4em;
+    margin: 0 0 1.5em 0;
+}
+
+legend {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+textarea {
+    min-height: 75px;
+}
+
+.editor-label {
+    margin: 1em 0 0 0;
+}
+
+.editor-field {
+    margin: 0.5em 0 0 0;
+}
+
+a {
+    color: #000;
+}
+
+/* Styles for validation helpers
+-----------------------------------------------------------*/
+.field-validation-error {
+    color: #f00;
+}
+
+.field-validation-valid {
+    display: none;
+}
+
+.input-validation-error {
+    border: 1px solid #f00;
+    background-color: #fee;
+}
+
+.validation-summary-errors {
+    font-weight: bold;
+    color: #f00;
+}
+
+.validation-summary-valid {
+    display: none;
+}
+
+
+/* angular animations */
+
+.animate-enter {
+    -webkit-transition:2s ease all;
+    transition: 2s ease all;
+    opacity: 0;
+
+}
+.animate-enter-active {
+    opacity: 1;
+}

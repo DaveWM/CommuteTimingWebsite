@@ -1,0 +1,39 @@
+﻿<!DOCTYPE html>
+<html lang="en" ng-app="commuteApp">
+    <head>
+        <meta charset="utf-8" />
+        <title>@ViewBag.Title</title>
+        <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+        <meta name="viewport" content="width=device-width" />
+        @Styles.Render("~/Content/css")
+        @Scripts.Render("~/bundles/modernizr")
+    </head>
+    <body>
+        <header>
+            <div class="page-header">
+                <h1>Commute Timer Website</h1>
+            </div>
+            <div>
+                <section id="login" class="pull-right">
+                    @Html.Partial("_LoginPartial")
+                </section>
+            </div>
+        </header>
+        <div id="body" class="row">
+            <section class="col-md-10 col-md-offset-1">
+                @RenderBody()
+            </section>
+        </div>
+        
+        
+        @Scripts.Render("~/bundles/jquery")
+        @Scripts.Render("~/bundles/angular")
+        @Scripts.Render("~/Scripts/linq.js")
+        @Scripts.Render("~/Scripts/toastr.js")
+        <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false&callback=initialize"></script>
+        <script>
+            var module = angular.module('commuteApp',[]);
+        </script>
+        @RenderSection("scripts", required: false)
+    </body>
+</html>
