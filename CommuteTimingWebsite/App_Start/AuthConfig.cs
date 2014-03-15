@@ -27,14 +27,14 @@ namespace CommuteTimingWebsite
                 using (var db = DatabaseHelpers.GetEntityModel())
                 {
                     WebSecurity.InitializeDatabaseConnection("DefaultConnection", "Users", "ID", "Name",
-                                                             autoCreateTables: true);
+                                                             autoCreateTables: false);
                 }
             }
             //OAuthWebSecurity.RegisterFacebookClient(
             //    appId: "621792781217115",
             //    appSecret: "c825a65c6fc8c76a147df80522e425ff");
 
-            //OAuthWebSecurity.RegisterGoogleClient();
+            OAuthWebSecurity.RegisterGoogleClient();
         }
     }
 }

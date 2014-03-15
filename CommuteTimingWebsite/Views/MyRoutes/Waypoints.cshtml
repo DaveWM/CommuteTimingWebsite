@@ -1,0 +1,132 @@
+﻿@using Newtonsoft.Json
+@model CommuteTimingWebsite.Models.Route
+
+@{
+    ViewBag.Title = @Model.Name + " Waypoints";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@section scripts
+{
+    <script type="text/javascript"
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEOtoibOc_5uWKeY_mV97liYUJ2GXzQLI&sensor=true">
+    </script>
+    <script>
+        module.controller('waypointsController', function($scope) {
+            $scope.WaypointStatesEnum = { Idle: 1, Processing: 2 };
+            $scope.WaypointsState = $scope.WaypointStatesEnum.Idle;
+            $scope.WaypointTypes = @Html.Raw(JsonConvert.SerializeObject(ViewBag.WaypointTypes));
+            $scope.Route = @Html.Raw(JsonConvert.SerializeObject(Model));
+
+            $scope.AddWaypoint = function(lat, lng, name) {
+                $scope.WaypointsState = $scope.WaypointStatesEnum.Processing;
+                $.post('@Url.Action("AddWaypoint")', { routeID: $scope.Route.ID, lat: lat, lng: lng }, function(wp) {
+                    if (name) {
+                        wp.Name = name;
+                    }
+                    $scope.Route.Waypoints.push(wp);
+                    $scope.WaypointsState = $scope.WaypointStatesEnum.Idle;
+                    $scope.$apply();
+                });
+            };
+            $scope.SaveWaypoints = function() {
+                $scope.WaypointsState = $scope.WaypointStatesEnum.Processing;
+                $.ajax({
+                    url: '@Url.Action("SaveWaypoints")',
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    data: JSON.stringify({ waypoints: $scope.Route.Waypoints }),
+                    traditional: true,
+                    success: function(result) {
+                        toastr.success('Saved');
+                    },
+                    error: function() {
+                        toastr.error('Failed');
+                    }
+                }).done(function() {
+                    $scope.WaypointsState = $scope.WaypointStatesEnum.Idle;
+                    $scope.$apply();
+                });
+            };
+            $scope.DeleteWaypoint = function(w) {
+                $scope.WaypointsState = $scope.WaypointStatesEnum.Processing;
+                $.post('@Url.Action("DeleteWaypoint")', { waypointID: w.ID }, function() {
+                    $scope.Route.Waypoints.splice($scope.Route.Waypoints.indexOf(w), 1);
+                    $scope.WaypointsState = $scope.WaypointStatesEnum.Idle;
+                    $scope.$apply();
+                });
+            };
+            $scope.Directions = { Up: -1, Down: 1 };
+            $scope.OrderedWaypoints = function() {
+                return Enumerable.From($scope.Route.Waypoints).OrderBy(function(w) { return w.Index; }).ToArray();
+            };
+            $scope.MoveWaypointInList = function(waypoint, direction) {
+                var orderedWaypoints = $scope.OrderedWaypoints();
+                var toSwap = orderedWaypoints[orderedWaypoints.indexOf(waypoint) + direction];
+                var waypointIndex = waypoint.Index;
+                waypoint.Index = toSwap.Index;
+                toSwap.Index = waypointIndex;
+            };
+            $scope.CanMove = function(waypoint, direction) {
+                var enumerable = Enumerable.From($scope.Route.Waypoints);
+                if (direction == $scope.Directions.Up) {
+                    return enumerable.Any(function(w) { return w.Index < waypoint.Index; });
+                } else {
+                    return enumerable.Any(function(w) { return w.Index > waypoint.Index; });
+                }
+            };
+            $scope.OnGeocoderResultSelected = function(result) {
+                $scope.AddWaypoint(result.geometry.location.lat(), result.geometry.location.lng(), result.formatted_address);
+            };
+        });
+    </script>
+}
+<div class="page-header text-center">
+    <h2>Waypoints <small>@Model.Name</small></h2>
+</div>
+<div class="col-xs-12" ng-controller="waypointsController" ng-cloak>
+    <div class="row">
+        <div class="col-xs-12 col-lg-6">
+            <div class="input-group spacer">
+                <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                <input type="text" class="form-control" ng-model="address" placeholder="Search For Address"/>
+            </div>
+            <geocoder class="spacer" ng-model="address" on-result-selected="OnGeocoderResultSelected" typing-timeout="500"></geocoder>
+            <div tooltip-placement="top" tooltip="Double Click to add a Waypoint" tooltip-popup-delay="1500" tooltip-trigger="mouseenter" tooltip-append-to-body="true">
+                <google-map height="600px" waypoints="Route.Waypoints" on-double-click="AddWaypoint"></google-map>
+            </div>
+        </div>
+        <div class="col-xs-12 col-lg-6 text-center" ng-class="{lookDisabled: WaypointsState==WaypointStatesEnum.Processing}">
+            <div ng-repeat="w in OrderedWaypoints()" class="listItemContainer flyLeft">
+                <div class="row">
+                    <div class="col-xs-1">
+                        <i class="fa fa-map-marker pull-left"></i>
+                    </div>
+                    <div class="col-xs-11">
+                        <div class="row">
+                            <div class="col-xs-12 col-md-10 col-lg-8">
+                                <input  id="name{{w.ID}}" type="text" class="form-control" ng-model="w.Name"/>
+                            </div>
+                            <div class="col-xs-12 col-md-2 col-lg-4">
+                                <div class="btn-group btn-group-sm">
+                                    <button ng-click="MoveWaypointInList(w,Directions.Up)" class="btn btn-primary" ng-show="CanMove(w,Directions.Up)"><i class="fa fa-arrow-up"></i></button>
+                                    <button ng-click="MoveWaypointInList(w,Directions.Down)" class="btn btn-primary" ng-show="CanMove(w,Directions.Down)"><i class="fa fa-arrow-down"></i></button>
+                                    <button ng-click="DeleteWaypoint(w)" class="btn btn-danger"><i class="fa fa-ban"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 spacer">
+                        <a  ng-repeat="wt in WaypointTypes" ng-click="w.Type = wt.ID"
+                            tooltip-placement="bottom" tooltip="{{wt.Name}}" tooltip-trigger="mouseenter" tooltip-append-to-body="true">
+                            <i ng-class="{selected: wt.ID == w.Type}" class="icon-{{wt.Name.toLowerCase()}}"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-block btn-lg spacer" ng-click="SaveWaypoints()"><i class="fa fa-floppy-o"></i> Save</button>
+            <i class="fa fa-3x fa-spinner fa-spin loadingIcon" ng-show="WaypointsState == WaypointStatesEnum.Processing"></i>
+        </div>
+    </div>
+</div>

@@ -2,9 +2,25 @@
 
 @{
     ViewBag.Title = "Error";
+    Layout = "_Layout.cshtml";
 }
 
-<hgroup class="title">
-    <h1 class="error">Error.</h1>
-    <h2 class="error">An error occurred while processing your request.</h2>
-</hgroup>
+<div class="page-header text-center">
+    <h3>Error <small>@Model.Exception.Message</small></h3>
+</div>
+<p>An error occured, please try again. If the problem persists, please contact the administrator (<a href="mailto:dwmartin41@gmail.com?Subject=Commutr%20Error">DWMartin41@gmail.com</a>)</p>
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h4 class="panel-title">
+            <a data-toggle="collapse" href="#journeysCollapse">
+                Details
+            </a>
+        </h4>
+    </div>
+    <div id="journeysCollapse" class="panel-collapse collapse">
+        <div class="panel-body">
+            <p>Action: @Model.ActionName</p>
+            <p>@Model.Exception.StackTrace</p>
+        </div>
+    </div>
+</div>

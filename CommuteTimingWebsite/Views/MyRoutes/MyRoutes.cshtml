@@ -1,33 +1,30 @@
 ﻿@{
-    ViewBag.Title = "Commute Timer";
+    ViewBag.Title = "My Routes";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+@using Newtonsoft.Json
 @model List<CommuteTimingWebsite.Models.Route>
 
 @section scripts{
     <script>
-        module.controller('myRoutesController', function ($scope) {
-            function InitialiseRoute(route,isNew) {
+        module.controller('myRoutesController', function ($scope,$window,journeyService,$timeout) {
+            $scope.RouteStateEnum = { Idle: 0, Deleting: 2, Saving: 3, Editing: 4 };
+            $scope.Routes = @Html.Raw(JsonConvert.SerializeObject(Model));
+            $.each($scope.Routes, function(index, route) {
                 route.State = $scope.RouteStateEnum.Idle;
-                route.IsNew = isNew;
-            }
-            
-            $scope.RouteStateEnum = { Idle: 0, Deleting: 2, Saving: 3,Recording:4 };
-            $scope.Routes = @Html.Raw(Json.Encode(Model));
-            $.each($scope.Routes,function(index, item) {
-                InitialiseRoute(item,false);
             });
-            $scope.SelectedRoute = { };
             $scope.AddRoute = function() {
-                var toAdd=@Html.Raw(Json.Encode(ViewBag.NewRoute));
-                InitialiseRoute(toAdd,true);
-                $scope.Routes.push(toAdd);
+                if ($scope.CanAddRoute()) {
+                    var toAdd = @Html.Raw(JsonConvert.SerializeObject(ViewBag.NewRoute));
+                    toAdd.State = $scope.RouteStateEnum.Editing;
+                    $scope.Routes.push(toAdd);
+                }
             };
             $scope.SaveRoute = function(route) {
                 route.State = $scope.RouteStateEnum.Saving;
                 $.post('@Url.Action("SaveRoute")', route, function(data) {
-                    toastr.success("Saved " + route.Name);
-                    route.IsNew = false;
+                    toastr.success("Saved Route '" + route.Name + "'");
+                    route.ID = data;
                     route.State = $scope.RouteStateEnum.Idle;
                     $scope.$apply();
                 });
@@ -35,37 +32,84 @@
             $scope.DeleteRoute = function(route) {
                 route.State = $scope.RouteStateEnum.Deleting;
                 $.post('@Url.Action("DeleteRoute")', route, function(data) {
-                    toastr.success("Deleted " + route.Name);
+                    toastr.success("Deleted Route '" + route.Name + "'");
                     $scope.Routes.splice($scope.Routes.indexOf(route), 1);
                     $scope.$apply();
                 });
             };
-        });
+            $scope.CanAddRoute = function() {
+                return Enumerable.From($scope.Routes).All(function(r) {
+                    return r.State == $scope.RouteStateEnum.Idle;
+                });
+            };
+            $scope.GetJourneyTime = journeyService().GetJourneyTime;
+            $scope.FormatDuration = journeyService().FormatDuration;
+            $scope.TimeAvg = journeyService().TimeAvg;
+            $scope.TimeSD = journeyService().TimeSD;
+            $scope.StartRecord = function(route) {
+                journeyService().StartRecord(route).then(function(newJourney) {
+                    $scope.$apply();
+                });
+            };
+            $scope.EndRecord = function(route) {
+                journeyService().EndRecord(route).then(function(endDate) {
+                    $scope.$apply();
+                });
+            };
+            $scope.CurrentJourney = journeyService().CurrentJourney;
+            
+            function UpdateJourneyTime() {
+                // forces a digest, updates the current journey time
+                $timeout(UpdateJourneyTime, 1000);
+            };
+            UpdateJourneyTime();
+        }
+        );
     </script>
 }
-<div class="page-header">
-    <h3>Record Your Commute Time</h3>
+<div class="page-header text-center">
+    <h3>Routes</h3>
 </div>
 <div ng-controller="myRoutesController" ng-cloak>
     <div class="row">
-        {{SelectedRoute.Name}}
-        <div ng-repeat="route in Routes" class="col-xs-4" ng-click="SelectedRoute=route" ng-class="{routeLoading:route.State != RouteStateEnum.Idle}">
-            <input ng-show="route.IsNew" type="text" class="form-control" ng-model="route.Name"/>
-            <div class="page-header">
-                <h4>{{route.Name}}</h4>
+        <div ng-repeat="route in Routes" class="col-md-4 col-xs-12 flyLeft" ng-click="SelectedRoute=route" ng-class="{lookDisabled:route.State == RouteStateEnum.Saving}">
+            <div class="listItemContainer">
+                <button class="btn btn-sm btn-success pull-right" ng-click="StartRecord(route)" ng-hide="CurrentJourney(route)" ng-class="{disabled: route.State != RouteStateEnum.Idle}"><i class="fa fa-play"></i></button>
+                <button class="btn btn-sm btn-danger pull-right" ng-click="EndRecord(route)" ng-hide="!CurrentJourney(route)" ng-class="{disabled: route.State != RouteStateEnum.Idle}"><i class="fa fa-stop"></i></button>
+                <input ng-show="route.State == RouteStateEnum.Editing" type="text" class="form-control" ng-model="route.Name" style="margin-top: 32px; margin-bottom: 34px;"/>
+                <div class="page-header" ng-hide="route.State == RouteStateEnum.Editing">
+                    <h4>{{route.Name}}</h4>
+                </div>
+                <dl class="dl-horizontal">
+                    <dt>Total Journeys</dt>
+                    <dd>{{route.Journeys.length}}</dd>
+                    <dt>Average Time</dt>
+                    <dd>{{TimeAvg(route)}}</dd>
+                    <dt>Std. Dev.</dt>
+                    <dd>{{TimeSD(route)}}</dd>
+                </dl>
+                <div>
+                    <div class="btn-group spacer">
+                        <a ng-class="{disabled: route.State != RouteStateEnum.Idle}" ng-href=@Url.Action("Journeys")/{{route.ID}} class="btn btn-primary"><i class="fa fa-road"></i> Journeys</a>
+                        <a ng-class="{disabled: route.State != RouteStateEnum.Idle}" ng-href=@Url.Action("Waypoints")/{{route.ID}} class="btn btn-primary"><i class="fa fa-map-marker"></i> Waypoints</a>
+                    </div>
+                    <button ng-class="{disabled: route.State != RouteStateEnum.Editing || !route.Name}" class="btn btn-primary btn-block" ng-click="SaveRoute(route)"><i class="fa fa-floppy-o"></i> Save</button>
+                    <button ng-class="{disabled: route.State != RouteStateEnum.Idle}" ng-click ="route.State = RouteStateEnum.Editing" class="btn btn-primary btn-block"><i class="fa fa-edit"></i> Edit</button>
+                    <button ng-class="{disabled: route.State != RouteStateEnum.Idle}" class="btn btn-danger btn-block" ng-click="DeleteRoute(route)"><i class="fa fa-ban"></i> Delete</button>
+                </div>
+                <i class="fa fa-3x fa-spinner fa-spin loadingIcon" ng-show="route.State == RouteStateEnum.Saving || route.State == RouteStateEnum.Deleting"></i>
             </div>
-            <p>Number of times taken: {{route.Journeys.length}}</p>
-            <div class="row">
-                <button ng-class="{disabled: route.State != RouteStateEnum.Idle || !route.Name}" ng-hide="!route.IsNew" class="btn btn-primary btn-block" ng-click="SaveRoute(route)"><i class="fa fa-floppy-o"></i> Save</button>
-                <button ng-class="{disabled: route.State != RouteStateEnum.Idle}" class="btn btn-primary btn-block" ng-click="DeleteRoute(route)"><i class="fa fa-ban"></i> Delete</button>
-                <a ng-href="@Url.Action("Route")/{{route.ID}}">Go To Route</a>
-            </div>
-            <i class="fa fa-3x fa-spinner fa-spin centered" ng-hide="route.State == RouteStateEnum.Idle"></i>
         </div>
-        <div class="col-xs-4">
-            <p>
-                <a href="#" ng-click="AddRoute()" class="centered"><i class="fa fa-2x fa-plus-circle"></i></a>
-            </p>
+        <div class="col-md-4 col-xs-12">
+            <div class="listItemContainer addNew" ng-dblclick="AddRoute()" tooltip-placement="top" tooltip="Double Click to Add a Route" tooltip-popup-delay='1500' tooltip-trigger="mouseenter" tooltip-append-to-body="true">
+                <a ng-class="{lookDisabled: !CanAddRoute()}" ng-click="AddRoute()"><i class="fa fa-3x fa-plus-circle"></i></a>
+            </div>
+        </div>
+    </div>
+    <div class="journeyTimePanel">
+        <div ng-repeat="route in Routes | filter : CurrentJourney" class="alert alert-info text-center flyLeft">
+            <h4>{{route.Name}}</h4>
+            <h4><i class="fa fa-clock-o"></i> {{FormatDuration(GetJourneyTime(CurrentJourney(route))) || '--:--:--'}}</h4>
         </div>
     </div>
 </div>

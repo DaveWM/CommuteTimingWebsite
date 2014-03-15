@@ -1,0 +1,177 @@
+﻿@using Newtonsoft.Json
+@model CommuteTimingWebsite.Models.Route
+
+@{
+    ViewBag.Title = @Model.Name + " Journeys";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section scripts
+{
+    <script>
+        module.controller('journeyController', function ($scope,$timeout,googleMapsService,$window,journeyService) {
+            $scope.DateFormatString = 'dd/MM/yy HH:mm';
+            $scope.Route = @Html.Raw(JsonConvert.SerializeObject(Model));
+            angular.forEach($scope.Route.Journeys, function(j) {
+                j.StartDate = moment.utc(j.StartDate).local().toDate();
+                if(j.EndDate)
+                    j.EndDate = moment.utc(j.EndDate).local().toDate();
+            });
+            $scope.StartRecord = function() {
+                journeyService().StartRecord($scope.Route).then(function(newJourney) {
+                    newJourney.StartDate = moment.utc(newJourney.StartDate).local().toDate();
+                    $scope.$apply();
+                });
+            };
+            $scope.EndRecord = function() {
+                journeyService().EndRecord($scope.Route).then(function(endDate) {
+                    $scope.$apply();
+                });
+            };
+            $scope.CurrentJourney = function() {
+                return journeyService().CurrentJourney($scope.Route);
+            };
+            $scope.JourneyResultsLimit = 4;
+            $scope.DeleteJourney = function(j) {
+                $.post('@Url.Action("DeleteJourney")', { journeyID: j.ID }, function() {
+                    $scope.Route.Journeys.splice($scope.Route.Journeys.indexOf(j),1);
+                    $scope.$apply();
+                    toastr.success('Deleted Journey');
+                });
+            };
+            $scope.SaveJourneys = function() {
+                $.ajax({
+                    url: '@Url.Action("SaveJourneys")',
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    data: JSON.stringify({ journeys: $scope.Route.Journeys }),
+                    traditional: true,
+                    success: function(result) {
+                        if (result) {
+                            toastr.success('Saved Journeys');
+                        } else {
+                            toastr.error('Could not save journeys');
+                        }
+                    },
+                    error: function() {
+                        toastr.error('Failed');
+                    }
+                });
+            };
+
+            $scope.GetJourneyTime = journeyService().GetJourneyTime;
+            $scope.FormatDuration = journeyService().FormatDuration;
+            $scope.TimeAvg = journeyService().TimeAvg;
+            $scope.TimeSD = journeyService().TimeSD;
+            $scope.GetBestJourney = function(ifByBestYouMeanWorst) {
+                var journey = Enumerable.From($scope.Route.Journeys)
+                .Where(function (j){ return j.EndDate;})
+                    .OrderBy(function(j) {
+                    return $scope.GetJourneyTime(j).asMilliseconds();
+                });
+                if(ifByBestYouMeanWorst) {
+                    return journey.LastOrDefault();
+                } else {
+                    return journey.FirstOrDefault();
+                }
+            };
+
+            $scope.FormatUTCDate = function(date) {
+                if(date) {
+                    return moment.utc(date).local().format('DD/MM/YY hh:mm');
+                }
+                else return null;
+            };
+
+            function UpdateJourneyTime() {
+                // forces a digest, updates the current journey time
+                $timeout(UpdateJourneyTime, 1000);
+            };
+            UpdateJourneyTime();
+        }
+        );
+    </script>
+}
+
+<div class="page-header text-center">
+    <h2>Journeys <small>@Model.Name</small></h2>
+</div>
+<div class="col-xs-12" ng-controller="journeyController" ng-cloak>
+    <div class="panel panel-default slideVertical" ng-hide="!Route.Journeys.length">
+        <div class="panel-heading">
+            <h4>Statistics <i class="fa fa-superscript"></i></h4>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-xs-6">
+                    <dl class="text-center">
+                        <dt>Average Time</dt>
+                        <dd>{{TimeAvg(Route)}}</dd>
+                        <dt>Standard Deviation</dt>
+                        <dd>{{TimeSD(Route)}}</dd>
+                    </dl>
+                </div>
+                <div class="col-xs-6">
+                    <dl class="text-center">
+                        <dt>Best Time</dt>
+                        <dd>{{FormatDuration(GetJourneyTime(GetBestJourney(false)))}} (on {{(GetBestJourney(false).StartDate | date : DateFormatString) || '--'}})</dd>
+                        <dt>Worst Time</dt>
+                        <dd>{{FormatDuration(GetJourneyTime(GetBestJourney(true)))}} (on {{(GetBestJourney(true).StartDate  | date : DateFormatString)  || '--'}})</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button class="btn btn-success btn-block spacer" ng-click="StartRecord()" ng-if="!CurrentJourney()"><i class="fa fa-play"></i> Start Journey</button>
+    <button class="btn btn-danger btn-block spacer" ng-click="EndRecord(route)" ng-if="CurrentJourney()"><i class="fa fa-stop"></i> End</button>
+    <div class="alert alert-info text-center journeyTimePanel flyLeft" ng-hide="!CurrentJourney()">
+        <h4><i class="fa fa-clock-o"></i> {{FormatDuration(GetJourneyTime(CurrentJourney())) || '--:--:--'}}</h4>
+    </div>
+    <div class="row">
+        <div class="col-xs-12">
+            <button ng-click="SaveJourneys()" class="btn btn-primary btn-block"><i class="fa fa-floppy-o"></i> Save Journeys</button>
+        </div>
+        <div ng-repeat="j in Route.Journeys | orderBy : 'StartDate' : true | limitTo : JourneyResultsLimit" class="col-md-3 col-sm-12 text-center flyLeft">
+            <div class="listItemContainer">
+                <div class="col-xs-12" style="overflow: hidden">
+                    <i class="fa fa-road pull-left"></i>
+                    <button ng-click="DeleteJourney(j)" class="btn btn-danger pull-right"><i class="fa fa-ban"></i></button>
+                </div>
+                <dl>
+                    <dt>Time</dt>
+                    <dd>{{FormatDuration(GetJourneyTime(j))}}</dd>
+                    <dt>Start</dt>
+                    <dd>
+                        <form class="form-inline" role="form">
+                            {{j.StartDate  | date : DateFormatString}}
+                            <div class="dropdown form-group">
+                                <button id="startDateEdit" class="btn btn-small btn-primary" data-toggle="dropdown"><i class="fa fa-calendar"></i></button>
+                                <ul class="dropdown-menu">
+                                    <datetimepicker data-ng-model="j.StartDate" data-datetimepicker-config="{dropdownSelector: '#startDateEdit', startView:'hour'}"></datetimepicker>
+                                </ul>
+                            </div>
+                        </form>
+                    </dd>
+                    <dt>End</dt>
+                    <dd>
+                        <form class="form-inline" role="form">
+                            {{(j.EndDate  | date : DateFormatString) || 'Recording...'}}
+                            <div class="dropdown form-group" ng-hide="!j.EndDate">
+                                <button id="endDateEdit" class="btn btn-small btn-primary" data-toggle="dropdown"><i class="fa fa-calendar"></i></button>
+                                <ul class="dropdown-menu">
+                                    <datetimepicker data-ng-model="j.EndDate" data-datetimepicker-config="{dropdownSelector: '#endDateEdit', startView:'hour'}"></datetimepicker>
+                                </ul>
+                            </div>
+                        </form>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="row spacer">
+        <div class="col-xs-12 text-center">
+            <button class="btn btn-primary" ng-click="JourneyResultsLimit = 9999" ng-hide="JourneyResultsLimit >= Route.Journeys.length"><i class="fa fa-chevron-down"></i></button>
+        </div>
+    </div>
+</div>

@@ -617,7 +617,6 @@ Enumerable = (function ()
                     })
             });
         },
-
         // Overload:function(predicate<element>)
         // Overload:function(predicate<element,index>)
         Where: function (predicate)
@@ -1342,7 +1341,18 @@ Enumerable = (function ()
 
             return sum / count;
         },
+        StandardDeviation : function(selector) {
+            selector = Utils.CreateLambda(selector);
+            var avg = this.Average(selector);
+            var sum = 0;
+            var count = 0;
+            this.ForEach(function(x) {
+                sum += Math.pow(selector(x) - avg, 2);
+                ++count;
+            });
 
+            return Math.pow(sum / count, 0.5);
+        },
         // Overload:function()
         // Overload:function(predicate)
         Count: function (predicate)

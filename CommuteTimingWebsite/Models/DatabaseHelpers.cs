@@ -10,12 +10,7 @@ namespace CommuteTimingWebsite.Models
         public static EntityContext GetEntityModel()
         {
             var db = new EntityContext();
-            db.Database.CreateIfNotExists();
-            if(!db.Database.CompatibleWithModel(false))
-            {
-                db.Database.Delete();
-                db.Database.Create();
-            }
+            db.Database.Initialize(false);
             return db;
         }
     }

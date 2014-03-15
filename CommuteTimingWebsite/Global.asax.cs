@@ -23,6 +23,8 @@ namespace CommuteTimingWebsite
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
             AuthConfig.RegisterAuth();
+
+            BundleTable.EnableOptimizations = false;
         }
     }
 }
