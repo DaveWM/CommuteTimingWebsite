@@ -41,49 +41,57 @@
             /*$(window).resize(function () {
                 fixWebkitHeightBug();
             });*/
+
+            module.controller('MasterController', function($scope) {
+                $scope.test = 'Hello';
+            });
         </script>
         @RenderSection("scripts", required: false)
     </head>
     <body>
-        <div class="container">
-            <div class="row">
-                <header>
-                    <div class="row spacer-4">
-                        <div class="col-xs-6 col-md-3 col-xs-offset-1">
-                            <a href="@Url.Action("MyRoutes","MyRoutes")" ><img id="logo" src="@Url.Content("~/Content/commutr_logo.png")" onerror='this.onerror = null; this.src="@Url.Content("~/Content/commutr_logo.png")"'/></a>
-                        </div>
-                        <div class="col-xs-4 pull-right">
-                            <section id="login">
-                                @Html.Partial("_LoginPartial")
-                            </section>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-xs-12">
-                            <ul class="nav nav-pills nav-justified">
-                                @{
-                                    var navs = new Dictionary<string, string>
-                                                   {
-                                                       {"MyRoutes", "My Routes"},
-                                                       {"About", "About"}
-                                                   };
-                                    foreach (var nav in navs)
-                                    {
-                                        <li class="@if(Equals(ViewContext.Controller.ValueProvider.GetValue("action").RawValue, nav.Key))
-                                                   {
-                                                       @:active
-                                                   }">@Html.ActionLink(nav.Value,nav.Key,"MyRoutes")</li>
-                                    }
-                                }
-                            </ul>
-                        </div>
-                    </div>
-                </header>
+        <div class="container" ng-controller="MasterController">
+            <div class="splashScreen" ng-cloak>
             </div>
-            <div class="row">
-                <section id="main">
-                    @RenderBody()
-                </section>
+            <div ng-cloak>
+                <div class="row">
+                    <header>
+                        <div class="row spacer-4">
+                            <div class="col-xs-6 col-md-3 col-xs-offset-1">
+                                <a href="@Url.Action("MyRoutes","MyRoutes")" ><img id="logo" src="@Url.Content("~/Content/commutr_logo.png")" onerror='this.onerror = null; this.src="@Url.Content("~/Content/commutr_logo.png")"'/></a>
+                            </div>
+                            <div class="col-xs-4 pull-right">
+                                <section id="login">
+                                    @Html.Partial("_LoginPartial")
+                                </section>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <ul class="nav nav-pills nav-justified">
+                                    @{
+                                        var navs = new Dictionary<string, string>
+                                                       {
+                                                           {"MyRoutes", "My Routes"},
+                                                           {"About", "About"}
+                                                       };
+                                        foreach (var nav in navs)
+                                        {
+                                            <li class="@if(Equals(ViewContext.Controller.ValueProvider.GetValue("action").RawValue, nav.Key))
+                                                       {
+                                                           @:active
+                                                       }">@Html.ActionLink(nav.Value,nav.Key,"MyRoutes")</li>
+                                        }
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </header>
+                </div>
+                <div class="row">
+                    <section id="main">
+                        @RenderBody()
+                    </section>
+                </div>
             </div>
         </div>
     </body>
